@@ -5,16 +5,30 @@ import { ArrowBack, Eye, EyeClosed } from '../common/svgs'
 
 
 interface TextBoxWithLabelProps {
-    placeholder: string;
-    labelName: string;
-    type: string;
-    hasIcon?: boolean;
-    icon?: React.ReactNode;
-    isPassword?: boolean;
-    infoTooltip?: string;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    placeholder: string
+    labelName: string
+    type: string
+    hasIcon?: boolean
+    icon?: React.ReactNode
+    isPassword?: boolean
+    infoTooltip?: string
+    value: string
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+    name: string
 }
+
+interface FormValues {
+    email: string,
+    firstName: string,
+    lastName?: string,
+    displayName: string,
+    dateOfBirth: Date,
+    gender: string,
+    occupation: string,
+    interests: string[],
+    password: string,
+    confirmPassword: string,
+  }
 
 const TextBoxWithLabel: React.FC<TextBoxWithLabelProps>  = ({
     placeholder,
@@ -23,6 +37,7 @@ const TextBoxWithLabel: React.FC<TextBoxWithLabelProps>  = ({
     isPassword = false,
     infoTooltip = '',
     value,
+    name,
     onChange}) => {
     const [showPassword, setShowPassword] = useState<boolean>(false);
 
@@ -36,6 +51,7 @@ const TextBoxWithLabel: React.FC<TextBoxWithLabelProps>  = ({
                 </div>  
                 <div className="relative pr-5">
                     <input
+                        name={name}
                         placeholder={placeholder}
                         type={isPassword ? (showPassword ? 'text' : 'password') : type}
                         value={value}
@@ -66,7 +82,9 @@ const TextBoxWithLabel: React.FC<TextBoxWithLabelProps>  = ({
 
 interface SelectBoxWithLabelProps {
     labelName: string,
-    items: string[]
+    items: string[],
+    name: string,
+    onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
 }
 
 const genderList = [
@@ -90,55 +108,10 @@ const SelectBoxWithLabel = (props: SelectBoxWithLabelProps) => {
             <div className="label">
                 <span className="label-text">{props.labelName}</span>
             </div>
-            <select className="select select-bordered w-full">
+            <select onChange={props.onChange} name={props.name} className="select select-bordered w-full">
                 {props.items.map((item, index) => (<option value={item} key={index}>{item}</option>))}
             </select>
         </label>
-    )
-}
-
-const RegistrationFlowOne = () => {
-    return (
-        <>
-            <TextBoxWithLabel value='' onChange={() => console.log('test')} labelName='Email *' placeholder='olie.ax@gmail.com' type='text'/>
-            <TextBoxWithLabel value='' onChange={() => console.log('test')} labelName='First name *' placeholder='Oliver' type='text'/>
-            <TextBoxWithLabel value='' onChange={() => console.log('test')} labelName='Last name' placeholder=' Axios' type='text'/>
-            <TextBoxWithLabel value='' onChange={() => console.log('test')} labelName='Display name' placeholder='Oliver the Green Arrow' type='text'/>
-        </>
-    )
-}
-
-
-const RegistrationFlowTwo = () => {
-    return (
-        <>
-            <CustomDatePicker labelName='Date of Birth *' />
-            <SelectBoxWithLabel labelName='Gender' items={genderList.map(item => item.label)}/>
-            <SelectBoxWithLabel labelName='What best describe you?' items={genderList.map(item => item.label)}/>
-            <SelectBoxWithLabel labelName='What are your interests?' items={genderList.map(item => item.label)}/>
-        </>
-    )
-}
-
-const RegistrationFlowThree = () => {
-    return (
-        <>
-            <TextBoxWithLabel 
-                isPassword={true}
-                labelName='Password *' 
-                placeholder='Enter your password here' 
-                type='password'
-                value=''
-                infoTooltip='test'
-                onChange={() => console.log('test')}
-                />
-            <TextBoxWithLabel labelName="Confirm password *"
-              placeholder="Confirm your password"
-              type="password"
-              isPassword={true}
-              value=''
-              onChange={() => console.log('first')}/>
-        </>
     )
 }
 
@@ -150,6 +123,120 @@ const RegisterCard = () => {
     }
     const handlePrevStep = () => {
         setStep(prevStep => prevStep - 1)
+    }
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+        console.log('Current payload: ', formData)
+    }
+
+    const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        if (step !== 3) {
+            e.preventDefault()
+            handleNextStep()
+        }
+    }
+
+    const [formData, setFormData] = useState<FormValues>({
+        email: '',
+        firstName: '',
+        lastName: '',
+        displayName: '',
+        dateOfBirth: new Date(),
+        gender: '',
+        occupation: '',
+        interests: [''],
+        password: '',
+        confirmPassword: '',
+      })
+
+    const handleOnChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        e.preventDefault()
+        const {value, name} = e.target
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }))
+    }
+    const RegistrationFlowOne = () => {
+        return (
+            <>
+                <TextBoxWithLabel 
+                    name='email'
+                    value={formData.email}
+                    onChange={handleOnChange} 
+                    labelName='Email *' 
+                    placeholder='olie.ax@gmail.com' 
+                    type='text'/>
+                <TextBoxWithLabel 
+                    name='firstName'
+                    value={formData.firstName}
+                    onChange={handleOnChange} 
+                    labelName='First name *' 
+                    placeholder='Oliver' 
+                    type='text'/>
+                <TextBoxWithLabel 
+                    name='lastName'
+                    value={formData.lastName || ''}
+                    onChange={handleOnChange} 
+                    labelName='Last name' 
+                    placeholder=' Axios' 
+                    type='text'/>
+                <TextBoxWithLabel
+                    name='preferredName'
+                    value={formData.displayName}
+                    onChange={handleOnChange} 
+                    labelName='Display name' 
+                    placeholder='Oliver the Green Arrow' 
+                    type='text'/>
+            </>
+        )
+    }
+    
+    
+    const RegistrationFlowTwo = () => {
+        return (
+            <>
+                <CustomDatePicker name='dateOfBirth' labelName='Date of Birth *' />
+                <SelectBoxWithLabel
+                    onChange={handleOnChange}
+                    name='gender'
+                    labelName='Gender' items={genderList.map(item => item.label)}/>
+                <SelectBoxWithLabel
+                    onChange={handleOnChange}
+                    name='professional' 
+                    labelName='What best describe you?' items={genderList.map(item => item.label)}/>
+                <SelectBoxWithLabel 
+                    onChange={handleOnChange}
+                    name='interests' 
+                    labelName='What are your interests?' items={genderList.map(item => item.label)}/>
+            </>
+        )
+    }
+    
+    const RegistrationFlowThree = () => {
+        return (
+            <>
+                <TextBoxWithLabel 
+                    name='password'
+                    isPassword={true}
+                    labelName='Password *' 
+                    placeholder='Enter your password here' 
+                    type='password'
+                    value=''
+                    infoTooltip='test'
+                    onChange={() => console.log('test')}
+                    />
+                <TextBoxWithLabel
+                  name='confirmedPassword'
+                  labelName="Confirm password *"
+                  placeholder="Confirm your password"
+                  type="password"
+                  isPassword={true}
+                  value=''
+                  onChange={() => console.log('first')}/>
+            </>
+        )
     }
 
     const renderStepForm = () => {
@@ -174,10 +261,20 @@ const RegisterCard = () => {
                     </button>
                 }
                 <text className='text-2xl font-bold text-center py-10'>DevAI Writer</text>
-                <div className='pb-8'>
-                    {renderStepForm()}
-                </div>
-                <button onClick={handleNextStep} className='btn btn-secondary'>{step === 3 ? 'Submit': 'Next'}</button>
+                <form onSubmit={(e) => {
+                    e.preventDefault()
+                    if (step === 3) {
+                        handleSubmit(e)
+                    }
+                }}>
+                    <div className='pb-8'>
+                        {renderStepForm()}
+                        <button type='submit' onClick={handleButtonClick} 
+                            className='btn btn-secondary'>
+                                {step === 3 ? 'Submit': 'Next'}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     )

@@ -10,13 +10,14 @@ interface CustomDatePickerProps {
   minDate?: Date,
   maxDate?: Date,
   disabled?: boolean,
+  name: string,
 }
 
 type ValuePiece = Date | null
 
 type Value = ValuePiece | [ValuePiece, ValuePiece]
 
-const CustomDatePicker = ({labelName}: CustomDatePickerProps) => {
+const CustomDatePicker = ({labelName, name}: CustomDatePickerProps) => {
   const [value, onChange] = useState<Value>()
   return (
     <label className="form form-control w-full pb-3">
@@ -24,6 +25,7 @@ const CustomDatePicker = ({labelName}: CustomDatePickerProps) => {
             <span className='label-text'>{labelName}</span>
           </div>
           <DatePicker
+            name={name}
             onChange={onChange}
             value={value}
             format='dd/MM/yyyy'
