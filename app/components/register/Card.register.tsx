@@ -1,31 +1,20 @@
 'use client'
 
-import { ArrowBack, Eye, EyeClosed } from '../common/svgs'
+import { AxiosError, AxiosResponse } from 'axios'
 import { Controller, SubmitHandler, useForm } from 'react-hook-form'
 import React, { useCallback, useEffect, useState } from 'react'
+import { formatDate, genderList, getGenderLabelByValue } from '@/app/utils/utils'
 import {object, z} from 'zod'
 
+import { ArrowBack } from '../common/svgs'
 import CustomDatePicker from '../common/CustomDatePicker'
 import RegisterPasswordInput from './inputs/RegisterPasswordInput'
 import RegisterSelectInput from './inputs/RegisterSelectInput'
 import RegisterTextInput from './inputs/RegisterTextInput'
 import { Value } from '@/app/types/custom-types'
+import axiosClient from '@/app/apis/axiosInstance'
+import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-
-const genderList = [
-    {
-        value: 'MALE',
-        label: 'Male'
-    },
-    {
-        value: 'FEMALE',
-        label: 'Female'
-    },
-    {
-        value: 'OTHER',
-        label: 'Other'
-    }
-]
 
 const schema = object({
     email: z.string().email(),
@@ -51,17 +40,37 @@ const RegisterCard = () => {
     const [step, setStep] = useState<number>(1)
     const [passwordMatched, setPasswordMatched] = useState<boolean>(false)
     const [isNextDisabled, setIsNextDisabled] = useState<boolean>(true)
+    const router = useRouter()
 
 
-    const nextStep = async () => {
+    const nextStep = async (e: React.MouseEvent) => {
+        e.preventDefault()
         if (step < 3 && !isNextDisabled) {
             setStep((prevStep) => prevStep + 1)
         }
     }
-    const backStep = () => setStep((prevStep) => prevStep - 1)
+    const backStep = (e: React.MouseEvent) => {
+        e.preventDefault()
+        setStep((prevStep) => prevStep - 1)
+    }
 
-    const onSubmit: SubmitHandler<FormFields> = (data) => {
-        console.log('Latest payload: ', data)
+    const onSubmit: SubmitHandler<FormFields> = async (data) => {
+        console.log("current Step: ", step)
+        try {
+            const response: AxiosResponse = await axiosClient.post('/auth/register', {...data, 
+                preferredName: data.displayName, 
+                dateOfBirth: formatDate(data.dateOfBirth), 
+                gender: getGenderLabelByValue(data.gender ? data.gender : '')})
+            console.log("response: ", response)
+            router.push('/')
+            
+        } catch (error) {
+            console.log("error: ", error)
+            if (error instanceof AxiosError) {
+                const data = error.response?.data
+                setError('root', data.messages[0])
+            }
+        }
     }
     
     const {
@@ -212,7 +221,7 @@ const RegisterCard = () => {
                         )}
                     </div>
                     {step < 3 ? (
-                        <button className={`btn btn-secondary btn-bordered w-full ${isNextDisabled? 'btn-disabled': ''}`} onClick={nextStep}>Next</button>
+                        <button type='button' className={`btn btn-secondary btn-bordered w-full ${isNextDisabled? 'btn-disabled': ''}`} onClick={nextStep}>Next</button>
                     ) : (
                         <button className={`btn btn-secondary btn-bordered w-full ${isNextDisabled? 'btn-disabled': ''}`} type='submit'>Submit</button>
                     )}
