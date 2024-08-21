@@ -7,7 +7,7 @@ import React, { useState } from 'react'
 
 import DatePicker from 'react-date-picker'
 import { Value } from '@/app/types/custom-types';
-import styles from './styles/custom-date-picker.module.css'
+import styles from '../styles/custom-date-picker.module.css'
 
 interface CustomDatePickerProps {
   label: string,

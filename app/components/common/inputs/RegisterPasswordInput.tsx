@@ -1,4 +1,4 @@
-import { Eye, EyeClosed, ToolTip } from '../../common/svgs'
+import { Eye, EyeClosed, ToolTip } from '../svgs'
 import React, { useEffect, useState } from 'react'
 
 interface RegisterTextInputProps { 

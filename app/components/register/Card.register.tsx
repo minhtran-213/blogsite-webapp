@@ -7,12 +7,13 @@ import { formatDate, genderList, getGenderLabelByValue } from '@/app/utils/utils
 import {object, z} from 'zod'
 
 import { ArrowBack } from '../common/svgs'
-import CustomDatePicker from '../common/CustomDatePicker'
-import RegisterPasswordInput from './inputs/RegisterPasswordInput'
-import RegisterSelectInput from './inputs/RegisterSelectInput'
-import RegisterTextInput from './inputs/RegisterTextInput'
+import CustomDatePicker from '../common/inputs/CustomDatePicker'
+import RegisterPasswordInput from '../common/inputs/RegisterPasswordInput'
+import { RegisterRequest } from '@/app/types/auth'
+import RegisterSelectInput from '../common/inputs/RegisterSelectInput'
+import RegisterTextInput from '../common/inputs/RegisterTextInput'
 import { Value } from '@/app/types/custom-types'
-import axiosClient from '@/app/apis/axiosInstance'
+import { registerUser } from '@/app/apis/auth'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 
@@ -36,6 +37,24 @@ const schema = object({
 })
 
 type FormFields = z.infer<typeof schema>
+
+
+
+export const mapFromFormDataToRegisterRequest = (data: FormFields): RegisterRequest => {
+    return {
+        dateOfBirth: formatDate(data.dateOfBirth),
+        firstName: data.firstName,
+        preferredName: data.displayName,
+        email: data.email,
+        gender: getGenderLabelByValue(data.gender),
+        professional: data.professional,
+        password: data.password,
+        interests: [data.interests],
+        lastName: data.lastName
+    }
+}
+
+
 const RegisterCard = () => {
     const [step, setStep] = useState<number>(1)
     const [passwordMatched, setPasswordMatched] = useState<boolean>(false)
@@ -55,12 +74,9 @@ const RegisterCard = () => {
     }
 
     const onSubmit: SubmitHandler<FormFields> = async (data) => {
-        console.log("current Step: ", step)
         try {
-            const response: AxiosResponse = await axiosClient.post('/auth/register', {...data, 
-                preferredName: data.displayName, 
-                dateOfBirth: formatDate(data.dateOfBirth), 
-                gender: getGenderLabelByValue(data.gender ? data.gender : '')})
+            const request = mapFromFormDataToRegisterRequest(data)
+            const response: AxiosResponse = await registerUser(request)
             console.log("response: ", response)
             router.push('/')
             

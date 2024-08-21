@@ -1,5 +1,10 @@
+import { Metadata } from 'next'
 import React from 'react'
 import RegisterCard from '../components/register/Card.register'
+
+export const metadata: Metadata = {
+  title: 'Registration'
+}
 
 const Register= () => {
   return (

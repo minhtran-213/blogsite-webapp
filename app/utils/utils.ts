@@ -28,9 +28,10 @@ export const genderList = [
 ]
 
 
-export const getGenderLabelByValue = (value: string) => {
+export const getGenderLabelByValue = (value: string | null): string | null => {
+    if (!value) return null
     const gender = genderList.find(gender => gender.value === value)
-    return gender?.label
+    return gender?.value ? gender.value : null
 }
 
 export const getGenderValueByLabel = (label: string) => {
