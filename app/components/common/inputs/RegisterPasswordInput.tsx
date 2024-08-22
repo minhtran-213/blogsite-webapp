@@ -34,22 +34,25 @@ const RegisterPasswordInput: React.FC<RegisterTextInputProps> = ({label, error, 
     <label className='form form-control w-full pb-3'>
         <div className='label'>
             <span className='label-text'>{label}</span>
-        </div>  
-        <div className="relative pr-5">
-            <input
-                placeholder={placeholder}
-                type={showPassword ? 'text' : 'password'}
-                className={`input input-bordered w-full ${error ? 'border-error': borderColor}`}
-                {...register(name)}
-                {...rest}
-            />
-            <button className='absolute top-1/2 right-7 -translate-y-1/2 text-lg' onClick={() => setShowPassword((prev) => !prev)}>
-                {showPassword ? <Eye /> : <EyeClosed />}
-            </button>
         </div>
-        <div className="tooltip tooltip-right tooltip-info absolute top-1/2 right-5 -translate-y-1/2 text-lg" 
-            data-tip={PasswordRequirements}>
-                <ToolTip className='cursor-help'/>
+        <div className="grid grid-cols-12 items-center">
+            <div className="relative pr-5 col-span-11">
+                <input
+                    placeholder={placeholder}
+                    type={showPassword ? 'text' : 'password'}
+                    className={`input input-bordered w-full ${error ? 'border-error': borderColor}`}
+                    {...register(name)}
+                    {...rest}
+                />
+                <button className='absolute top-1/2 right-7 -translate-y-1/2 text-lg' onClick={(e) => {e.preventDefault() 
+                    setShowPassword((prev) => !prev)}}>
+                    {showPassword ? <Eye /> : <EyeClosed />}
+                </button>
+            </div>
+            <div className="tooltip tooltip-right tooltip-info col-span-1" 
+                data-tip={PasswordRequirements}>
+                    <ToolTip className='cursor-help flex'/>
+            </div>
         </div>
         {error && <span className='text-error text-sm pt-2'>{error}</span>}
     </label>
