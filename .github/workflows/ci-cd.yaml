@@ -1,0 +1,178 @@
+name: NextJS CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  FRONTEND_REPO: blogsite-frontend
+  DEVOPS_REPO: blogsite-devops
+  DOCKER_IMAGE: ghcr.io/minhtran-213/blogsite-frontend
+  DEPLOY_PATH: /root/blogsite-project/blogsite-devops
+
+jobs:
+  determine-release:
+    name: Determine Release Type
+    runs-on: ubuntu-latest
+    outputs:
+      release_type: ${{ steps.release.outputs.release_type }}
+      new_version: ${{ steps.release.outputs.new_version }}
+      prev_version: ${{ steps.get_previous_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get previous version
+        id: get_previous_version
+        run: echo "version=$(npm pkg get version | tr -d '"')" >> $GITHUB_OUTPUT
+
+      - name: Determine release type
+        id: release
+        run: |
+          MESSAGE=$(git log -1 --pretty=%B)
+          PREV_VERSION="${{ steps.get_previous_version.outputs.version }}"
+          IFS='.' read -ra VERSION_PARTS <<< "$PREV_VERSION"
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+          PATCH=${VERSION_PARTS[2]}
+          
+          if [[ "$MESSAGE" =~ ^big\(.*\) ]]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            echo "release_type=major" >> $GITHUB_OUTPUT
+          elif [[ "$MESSAGE" =~ ^feat\(.*\) ]]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            echo "release_type=minor" >> $GITHUB_OUTPUT
+          elif [[ "$MESSAGE" =~ ^fix\(.*\) ]]; then
+            PATCH=$((PATCH + 1))
+            echo "release_type=patch" >> $GITHUB_OUTPUT
+          else
+            echo "release_type=none" >> $GITHUB_OUTPUT
+          fi
+          
+          if [[ "${{ steps.release.outputs.release_type }}" != "none" ]]; then
+            NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+            echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          fi
+
+  build-and-deploy:
+    needs: determine-release
+    if: needs.determine-release.outputs.release_type != 'none'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout frontend code
+      uses: actions/checkout@v3
+      with:
+        repository: minhtran-213/${{ env.FRONTEND_REPO }}
+        token: ${{ secrets.TOKEN }}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '14'
+
+    - name: Update version in package.json
+      run: npm version ${{ needs.determine-release.outputs.new_version }} --no-git-tag-version
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build NextJS application
+      run: npm run build
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        RELEASE_DATE=$(date +"%Y-%m-%d")
+        REPO_URL="https://github.com/${{ github.repository }}"
+        echo "## ${{ needs.determine-release.outputs.new_version }} ($RELEASE_DATE)" > CHANGELOG.md
+        git log --pretty=format:"%s ([%h]($REPO_URL/commit/%H))" --no-merges "${{ needs.determine-release.outputs.prev_version }}..HEAD" | \
+        awk '
+            /^feat\(.*\):/ {print "### Features:\n- " $0; next} 
+            /^fix\(.*\):/ {print "### Bugfix/Changes:\n- " $0; next} 
+            /^build\(.*\):/ {print "### Bugfix/Changes:\n- " $0; next} 
+            /^big\(.*\):/ {print "### Big changes:\n- " $0; next}
+            {print "### Other changes:\n- " $0}
+          ' >> CHANGELOG.md 
+
+    - name: Commit version bump and changelog
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add package.json CHANGELOG.md
+        git commit -m "Bump version to ${{ needs.determine-release.outputs.new_version }} and update changelog"
+        git push
+
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.TOKEN }}
+      with:
+        tag_name: v${{ needs.determine-release.outputs.new_version }}
+        release_name: Release ${{ needs.determine-release.outputs.new_version }}
+        body_path: CHANGELOG.md
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        tags: ${{ env.DOCKER_IMAGE }}:${{ needs.determine-release.outputs.new_version }}
+
+    - name: Checkout DevOps repository
+      uses: actions/checkout@v3
+      with:
+        repository: minhtran-213/${{ env.DEVOPS_REPO }}
+        token: ${{ secrets.TOKEN }}
+
+    - name: Update docker-compose.yaml and .env
+      run: |
+        # Update docker-compose.yaml
+        sed -i 's|${{ env.DOCKER_IMAGE }}:[0-9.]*|${{ env.DOCKER_IMAGE }}:${{ needs.determine-release.outputs.new_version }}|' manifests/docker-compose.yaml
+        
+        # Update .env file in the manifests folder
+        echo "NEXT_PUBLIC_BACKEND_BASE_URL=${{ secrets.NEXT_PUBLIC_BACKEND_BASE_URL }}" > manifests/.env
+        
+        # Commit and push changes
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add manifests/docker-compose.yaml manifests/.env
+        git commit -m "Update frontend image to ${{ needs.determine-release.outputs.new_version }} and update .env"
+        git push
+
+    - name: Deploy to VM
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USERNAME }}
+        password: ${{ secrets.VM_PASSWORD }}
+        port: ${{ secrets.VM_PORT }}
+        envs: DEPLOY_PATH
+        script: |
+          mkdir -p $DEPLOY_PATH
+          cd $DEPLOY_PATH
+          if [ ! -d .git ]; then
+            git init
+            git remote add origin https://github.com/minhtran-213/${{ env.DEVOPS_REPO }}.git
+          fi
+          git fetch origin main
+          git reset --hard origin/main
+          if ! command -v docker compose &> /dev/null; then
+            echo "docker-compose not found, installing..."
+            sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+          fi
+          docker compose -f manifests/docker-compose.yaml up -d

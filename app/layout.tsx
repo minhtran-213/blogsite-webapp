@@ -1,5 +1,7 @@
 import './globals.css'
 
+import { ClerkProvider } from '@clerk/nextjs';
+import Head from 'next/head';
 import type { Metadata } from "next";
 import { Navbar } from "./components/common/navbar/Navbar";
 
@@ -15,11 +17,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html data-theme="lemonade">
-      <body>
-        <Navbar/>
-        {children}
-      </body>
-    </html>
+    <ClerkProvider>
+      <html data-theme="lemonade">
+        <Head>
+          <link rel="icon" href="/favicon.ico"/>
+          <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        </Head>
+        <body>
+          <Navbar/>
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

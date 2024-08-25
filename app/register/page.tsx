@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 const Register= () => {
   return (
-    <div className='max-w-md mx-auto mt-8'>
+    <div className=''>
         <h1 className='text-3xl font-bold text-center mb-6'>Welcome to DevAI Writer</h1>
         <RegisterCard/>
     </div>
