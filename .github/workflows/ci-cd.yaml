@@ -5,9 +5,9 @@ on:
     branches: [ main ]
 
 env:
-  FRONTEND_REPO: blogsite-frontend
+  FRONTEND_REPO: blogsite-webapp
   DEVOPS_REPO: blogsite-devops
-  DOCKER_IMAGE: ghcr.io/minhtran-213/blogsite-frontend
+  DOCKER_IMAGE: ghcr.io/minhtran-213/blogsite-webapp
   DEPLOY_PATH: /root/blogsite-project/blogsite-devops
 
 jobs:
