@@ -5,6 +5,7 @@ import * as SignIn from '@clerk/elements/sign-in'
 
 import { Eye, EyeClosed, Logo } from '../common/svgs'
 import React, { useState } from 'react'
+import { useForm } from 'react-hook-form'
 
 import useDetectBrowser from '@/app/hooks/useDetectBrowser'
 
@@ -20,18 +21,15 @@ const LoginCard = () => {
   }
   return (
     <div className="grid w-full flex-grow items-center justify-center">
-      <SignIn.Root>
-        <SignIn.Step
-          name="start"
-          className="w-full space-y-6 rounded-2xl bg-white px-4 py-10 shadow-md ring-1 ring-black/5 sm:w-96 sm:px-8"
-        >
+      <form>
+        <div className="w-full space-y-6 rounded-2xl bg-white px-4 py-10 shadow-md ring-1 ring-black/5 sm:w-96 sm:px-8">
           <header className="grid place-items-center">
             <Logo className="w-44 h-44 pb-4" />
             <h1 className="mt-4 text-xl font-medium tracking-tight text-zinc-950">
               Welcome back to DevAI Writer
             </h1>
           </header>
-          <Clerk.GlobalError className="block text-sm text-red-400" />
+          <p className="block text-sm text-red-400" />
           <div className="space-y-4">
             <Clerk.Field name="identifier" className="space-y-2">
               <Clerk.Label className="text-sm font-medium text-zinc-950">
@@ -39,7 +37,6 @@ const LoginCard = () => {
               </Clerk.Label>
               <Clerk.Input
                 type="text"
-                required
                 className="w-full input input-bordered data-[invalid]:ring-error"
               />
               <Clerk.FieldError className="block text-sm text-error" />
@@ -52,7 +49,6 @@ const LoginCard = () => {
             <div className="relative">
               <Clerk.Input
                 type={showPassword ? 'text' : 'password'}
-                required
                 className="w-full input input-bordered data-[invalid]:ring-error"
               />
               {browser !== 'Edge' && (
@@ -72,8 +68,8 @@ const LoginCard = () => {
           <SignIn.Action submit className="w-full btn btn-neutral">
             Login
           </SignIn.Action>
-        </SignIn.Step>
-      </SignIn.Root>
+        </div>
+      </form>
     </div>
   )
 }

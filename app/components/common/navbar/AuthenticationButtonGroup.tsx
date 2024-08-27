@@ -22,7 +22,7 @@ const AuthenticationButtons = () => {
     <>
       <SignedOut>
         <SignUpButton>
-          <SecondaryButton name='Join in' callback={handleRegister}/>
+          <SecondaryButton name='Join' callback={handleRegister}/>
         </SignUpButton>
         <SignInButton>
           <PrimaryButton name='Login' callback={handleLogin}/>
