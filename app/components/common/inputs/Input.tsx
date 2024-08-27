@@ -1,13 +1,31 @@
 import React from 'react'
+import { cn } from '@/app/utils/utils'
 
-export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {}
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string
+}
 
-import useDetectBrowser from '@/app/hooks/useDetectBrowser'
-
-const Input: React.FC<InputProps> = ({ name, type, ...props }, ref) => {
-  const browser = useDetectBrowser()
-  return <input type={type} />
+const Input: React.FC<InputProps> = (
+  { label, name, type, placeholder, className, ...props },
+  ref
+) => {
+  return (
+    <label className="form form-control w-full pb-3">
+      {label && (
+        <div className="label">
+          <span className="label-text text-zinc-950 font-medium">{label}</span>
+        </div>
+      )}
+      <input
+        type={type}
+        name={name}
+        className={cn('input input-bordered', className)}
+        placeholder={placeholder}
+        // ref={ref}
+        {...props}
+      />
+    </label>
+  )
 }
 
 export default Input
