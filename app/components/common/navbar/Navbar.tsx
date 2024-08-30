@@ -1,16 +1,15 @@
+import { LogoText } from '../svgs'
 import AuthenticationButtons from './AuthenticationButtonGroup'
 import React from 'react'
 
 export const Navbar = () => {
     return (
         <>
-        <div className="navbar bg-white shadow-md">
-            <div className="flex-1">
-                <a href='/' className="btn btn-ghost text-xl">
-                    DevAI Writer
-                </a>
+        <div className="navbar bg-white shadow-md grid grid-cols-3">
+            <div className="col-span-1">
+                <a className="btn btn-link relative justify-start p-5"><LogoText className='absolute w-28 h-28'/></a>
             </div>
-            <div className="flex-none gap-2">
+            <div className="col-span-2 justify-end gap-3">
                 <ul className='menu menu-horizontal px-1'>
                     <li><a>Research papers</a></li>
                     <li>

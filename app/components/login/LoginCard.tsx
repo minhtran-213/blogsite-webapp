@@ -1,79 +1,111 @@
 'use client'
 
-import * as Clerk from '@clerk/elements/common'
-import * as SignIn from '@clerk/elements/sign-in'
+import Input from '../common/inputs/Input'
+import { Logo } from '../common/svgs'
+import PasswordInput from '../common/inputs/PasswordInput'
+import React from 'react'
+import { isClerkAPIResponseError } from '@clerk/nextjs/errors'
+import { useForm } from 'react-hook-form'
+import { useRouter } from 'next/navigation'
+import { useSignIn } from '@clerk/nextjs'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
 
-import { Eye, EyeClosed, Logo } from '../common/svgs'
-import React, { useState } from 'react'
+const formSchema = z.object({
+  email: z.string().email().min(1, 'Email is required'),
+  password: z.string().min(1, 'Password is required'),
+})
 
-import useDetectBrowser from '@/app/hooks/useDetectBrowser'
+type FormValues = z.infer<typeof formSchema>
 
 const LoginCard = () => {
-  const browser = useDetectBrowser()
-  const [showPassword, setShowPassword] = useState<boolean>(false)
+  const router = useRouter()
+  const { signIn, setActive, isLoaded } = useSignIn()
+  const {
+    register,
+    formState: { errors },
+    setError,
+    handleSubmit,
+  } = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+  })
+  const onSubmit = async (data: FormValues) => {
+    if (!isLoaded) {
+      console.log('Is loaded')
+      return null
+    }
 
-  const togglePassword = (
-    e: React.MouseEvent<HTMLButtonElement | MouseEvent>
-  ) => {
-    e.preventDefault()
-    setShowPassword((prev) => !prev)
+    try {
+      if (signIn) {
+        const response = await signIn.create({
+          identifier: data.email,
+          password: data.password,
+        })
+
+        if (response.status === 'complete') {
+          setActive({ session: response.createdSessionId })
+          router.push('/')
+        }
+      }
+    } catch (error) {
+      if (isClerkAPIResponseError(error)) {
+        if (error.errors) {
+          const errorItem = error.errors[0]
+          const field = errorItem.meta?.paramName
+          if (field === 'password') {
+            setError('password', { message: 'Password is incorrect' })
+          } else if (field === 'identifier') {
+            setError('email', { message: 'Email is not found' })
+          } else {
+            setError('root', { message: errorItem.longMessage })
+          }
+        }
+      }
+    }
   }
+
   return (
     <div className="grid w-full flex-grow items-center justify-center">
-      <SignIn.Root>
-        <SignIn.Step
-          name="start"
-          className="w-full space-y-6 rounded-2xl bg-white px-4 py-10 shadow-md ring-1 ring-black/5 sm:w-96 sm:px-8"
-        >
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className="w-full space-y-6 rounded-2xl bg-white px-4 py-10 shadow-md ring-1 ring-black/5 sm:w-96 sm:px-8">
           <header className="grid place-items-center">
             <Logo className="w-44 h-44 pb-4" />
-            <h1 className="mt-4 text-xl font-medium tracking-tight text-zinc-950">
-              Welcome back to DevAI Writer
-            </h1>
           </header>
-          <Clerk.GlobalError className="block text-sm text-red-400" />
-          <div className="space-y-4">
-            <Clerk.Field name="identifier" className="space-y-2">
-              <Clerk.Label className="text-sm font-medium text-zinc-950">
-                Email
-              </Clerk.Label>
-              <Clerk.Input
-                type="text"
-                required
-                className="w-full input input-bordered data-[invalid]:ring-error"
-              />
-              <Clerk.FieldError className="block text-sm text-error" />
-            </Clerk.Field>
+          <div className="">
+            <Input
+              {...register('email')}
+              label="Email"
+              name="email"
+              type="text"
+              placeholder="Enter your email"
+            />
+            {errors.email && (
+              <p className="text-error font-medium text-sm">
+                {errors.email.message}
+              </p>
+            )}
           </div>
-          <Clerk.Field name="password" className="space-y-2">
-            <Clerk.Label className="text-sm font-medium text-zinc-950">
-              Password
-            </Clerk.Label>
-            <div className="relative">
-              <Clerk.Input
-                type={showPassword ? 'text' : 'password'}
-                required
-                className="w-full input input-bordered data-[invalid]:ring-error"
-              />
-              {browser !== 'Edge' && (
-                <button
-                  onClick={togglePassword}
-                  className="absolute flex justify-around top-1/2  right-6 -translate-y-1/2 text-lg"
-                >
-                  {showPassword ? <Eye /> : <EyeClosed />}
-                </button>
-              )}
-            </div>
-            <Clerk.FieldError className="block text-sm text-red-400" />
-            <a className="pt-5 text-sm" href="/forgot-password">
-              Forgot Password?
-            </a>
-          </Clerk.Field>
-          <SignIn.Action submit className="w-full btn btn-neutral">
+          <div>
+            <PasswordInput label="Password" {...register('password')} />
+            {errors.password && (
+              <p className="text-error font-bold text-sm">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+          <a className="pt-5 text-sm" href="/forgot-password">
+            Forgot Password?
+          </a>
+          <button
+            type="submit"
+            className={`btn ${
+              !isLoaded ? 'btn-disabled' : 'btn-secondary'
+            } w-full`}
+          >
             Login
-          </SignIn.Action>
-        </SignIn.Step>
-      </SignIn.Root>
+          </button>
+        </div>
+      </form>
     </div>
   )
 }
